@@ -1,0 +1,36 @@
+services:
+  postgres:
+    image: postgres:18-alpine
+    environment:
+      POSTGRES_DB: principal_context
+      POSTGRES_USER: principal_context
+      POSTGRES_PASSWORD: principal_context
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U principal_context -d principal_context"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+    ports:
+      - "5432:5432"
+    volumes:
+      - principal-context-postgres:/var/lib/postgresql
+
+  application:
+    build: .
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: jdbc:postgresql://postgres:5432/principal_context
+      DATABASE_USERNAME: principal_context
+      DATABASE_PASSWORD: principal_context
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8080/actuator/health/readiness"]
+      interval: 5s
+      timeout: 3s
+      retries: 18
+    ports:
+      - "8080:8080"
+
+volumes:
+  principal-context-postgres:
